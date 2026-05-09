@@ -697,7 +697,7 @@
             const container = document.getElementById('cruce-list-container');
             container.innerHTML = `<h3 style="margin-bottom:15px; color:#555;">Lista de ${state.gender === 'nena' ? 'Nenas' : 'Nenes'}</h3>`;
 
-            const list = [...state.data[target][state.gender]];
+            const list = [...state.data[target][state.gender]].sort(() => Math.random() - 0.5);
 
             list.forEach((item) => {
                 container.innerHTML += `
