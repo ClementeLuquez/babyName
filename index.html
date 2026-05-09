@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Baby Name Matcher</title>
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.5);
+            --text-color: #4a4a4a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* 1. FIX CENTRADO: Ocupa el 100% real del celular */
+        body,
+        html {
+            height: 100dvh;
+            width: 100vw;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f0f0f0;
+        }
+
+        #app-container {
+            position: relative;
+            width: 100%;
+            height: 100dvh;
+            max-width: 500px;
+            /* Limite para pantallas muy grandes */
+            background: #fff;
+            overflow: hidden;
+        }
+
+        /* 2. FIX IMÁGENES: Sin márgenes y centradas */
+        .screen {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-size: cover;
+            /* Cambiado a cover para eliminar márgenes */
+            background-position: center center;
+            background-repeat: no-repeat;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            /* Botones siempre abajo */
+            padding-bottom: 10dvh;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1;
+        }
+
+        .screen.active {
+            opacity: 1;
+            visibility: visible;
+            z-index: 2;
+        }
+
+        #screen1 {
+            background-image: url('img1.png');
+        }
+
+        #screen2 {
+            background-image: url('img2.png');
+        }
+
+        #screen3 {
+            background-image: url('img3.png');
+        }
+
+        #screen4 {
+            background-image: url('img4.png');
+        }
+
+        #screen5 {
+            background-image: url('img5.png');
+        }
+
+        /* 3. PANELES DE VIDRIO FULL SCREEN */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+            flex-direction: column;
+            z-index: 10;
+            padding: 40px 20px;
+            opacity: 0;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-panel.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .panel-header {
+            flex-shrink: 0;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: slideDownFade 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .panel-footer {
+            flex-shrink: 0;
+            padding-top: 20px;
+            animation: slideUpFade 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideDownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            70% {
+                transform: scale(1.1);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Zona de Scroll */
+        .panel-scroll {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+
+        .panel-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 4. ELEMENTOS DE UI */
+        .btn-main {
+            padding: 18px 60px;
+            border-radius: 50px;
+            border: none;
+            background: #fff;
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--text-color);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform: translateY(0);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-main:active {
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-main:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 18px;
+            border-radius: 30px;
+            background: #fff;
+            border: 1px solid #ddd;
+            font-weight: bold;
+            color: #4a4a4a;
+            font-size: 18px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+        }
+
+        .btn-action:active {
+            transform: scale(0.98);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-action:hover {
+            background: #f5f5f5;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            align-items: center;
+            animation: fadeIn 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        .input-group:nth-child(2) { animation-delay: 0.1s; }
+        .input-group:nth-child(3) { animation-delay: 0.2s; }
+        .input-group:nth-child(4) { animation-delay: 0.3s; }
+        .input-group:nth-child(5) { animation-delay: 0.4s; }
+        .input-group:nth-child(6) { animation-delay: 0.5s; }
+        .input-group:nth-child(7) { animation-delay: 0.6s; }
+        .input-group:nth-child(8) { animation-delay: 0.7s; }
+        .input-group:nth-child(9) { animation-delay: 0.8s; }
+        .input-group:nth-child(10) { animation-delay: 0.9s; }
+        .input-group:nth-child(11) { animation-delay: 1s; }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .ver-tabla-link {
+            position: absolute;
+            bottom: 20%;
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            text-decoration: none;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75);
+            padding: 12px 30px;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeIn 1s cubic-bezier(0.4, 0, 0.2, 1) 0.6s forwards;
+        }
+
+        .ver-tabla-link:hover {
+            text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9);
+            font-size: 20px;
+        }
+
+        .ver-tabla-link:active {
+            opacity: 0.8;
+        }
+
+        input[type="text"] {
+            flex: 2;
+            padding: 15px;
+            border-radius: 15px;
+            border: none;
+            background: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 6px 20px rgba(79, 195, 247, 0.3);
+            transform: translateY(-2px);
+        }
+
+        select {
+            flex: 1;
+            padding: 15px;
+            border-radius: 15px;
+            border: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            box-shadow: 0 6px 20px rgba(79, 195, 247, 0.3);
+        }
+
+        select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #f5f5f5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #final-nene {
+            position: absolute;
+            top: 51%;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            font-size: 32px;
+            color: #ffffff;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75), 0 0 14px rgba(0, 0, 0, 0.45);
+            animation: fadeIn 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards;
+            opacity: 0;
+        }
+
+        #final-nena {
+            position: absolute;
+            top: 63.5%;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            font-size: 32px;
+            color: #ffffff;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75), 0 0 14px rgba(0, 0, 0, 0.45);
+            animation: fadeIn 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app-container">
+
+        <div id="screen1" class="screen active">
+            <button class="btn-main" onclick="goToStep(2)">COMENZAR</button>
+        </div>
+
+        <div id="screen2" class="screen">
+            <button id="ok-btn-2" class="btn-main" onclick="openInputUI()">Ok</button>
+            <div id="panel-input" class="glass-panel">
+                <div class="panel-header">
+                    <h4 id="step-info" style="color:#777"></h4>
+                    <h1 id="score-val" style="font-size: 40px; margin: 10px 0;"></h1>
+                    <p id="instruction" style="font-size: 18px;"></p>
+                </div>
+                <div class="panel-scroll" style="display:flex; align-items:center; justify-content:center;">
+                    <input type="text" id="name-input" placeholder="Escribí aquí..."
+                        style="width:100%; font-size:24px; text-align:center;">
+                </div>
+                <div class="panel-footer">
+                    <button class="btn-action" onclick="processInput()">SIGUIENTE</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen3" class="screen">
+            <button id="ok-btn-3" class="btn-main" onclick="openInputUI()">Ok</button>
+        </div>
+
+        <div id="screen4" class="screen">
+            <button id="ok-btn-4" class="btn-main" onclick="openCruceUI()">Ok</button>
+            <div id="panel-cruce" class="glass-panel">
+                <div class="panel-header">
+                    <h2>Puntuá la lista de <span id="target-user"></span></h2>
+                    <p style="color:#666; font-size:14px; margin-top:5px;">Mirá todos los nombres antes de elegir</p>
+                </div>
+                <div class="panel-scroll" id="cruce-list-container">
+                    <!-- Aquí se cargan los 10 nombres juntos -->
+                </div>
+                <div class="panel-footer">
+                    <button class="btn-action" onclick="processCruce()">CONFIRMAR VOTOS</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen5" class="screen">
+            <div id="final-nene">---</div>
+            <div id="final-nena">---</div>
+            <a href="#" class="ver-tabla-link" onclick="showResultsSummary(); return false;">VER TABLA</a>
+        
+        </div>
+
+    </div>
+
+    <script>
+        let state = {
+            screen: 1,
+            user: 'mami',
+            gender: 'nena',
+            step: 1,
+            data: { mami: { nena: [], nene: [] }, papi: { nena: [], nene: [] } },
+            scores: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+        };
+
+        function cloneData(obj) {
+            return JSON.parse(JSON.stringify(obj));
+        }
+
+        function pushHistorySnapshot(replace = false) {
+            const snapshot = {
+                screen: state.screen,
+                user: state.user,
+                gender: state.gender,
+                step: state.step,
+                data: cloneData(state.data)
+            };
+
+            if (replace) {
+                history.replaceState({ appSnapshot: snapshot }, "");
+            } else {
+                history.pushState({ appSnapshot: snapshot }, "");
+            }
+        }
+
+        function syncUIFromState() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen${state.screen}`).classList.add('active');
+
+            const panelInput = document.getElementById('panel-input');
+            const panelCruce = document.getElementById('panel-cruce');
+            if (panelInput) panelInput.classList.remove('show');
+            if (panelCruce) panelCruce.classList.remove('show');
+
+            const ok2 = document.getElementById('ok-btn-2');
+            const ok3 = document.getElementById('ok-btn-3');
+            const ok4 = document.getElementById('ok-btn-4');
+            if (ok2) ok2.classList.remove('hidden');
+            if (ok3) ok3.classList.remove('hidden');
+            if (ok4) ok4.classList.remove('hidden');
+
+            if (state.screen === 2 || state.screen === 3) {
+                document.getElementById(`ok-btn-${state.screen}`).classList.add('hidden');
+                document.getElementById(`screen${state.screen}`).appendChild(panelInput);
+                panelInput.classList.add('show');
+                updateInputText();
+            }
+
+            if (state.screen === 4) {
+                document.getElementById('ok-btn-4').classList.add('hidden');
+                panelCruce.classList.add('show');
+                renderCruceList();
+            }
+        }
+
+        function restoreFromSnapshot(snapshot) {
+            state.screen = snapshot.screen;
+            state.user = snapshot.user;
+            state.gender = snapshot.gender;
+            state.step = snapshot.step;
+            state.data = cloneData(snapshot.data);
+            syncUIFromState();
+        }
+
+        // 1. MANEJO DE BOTÓN ATRÁS DEL TELÉFONO
+        window.addEventListener('load', () => {
+            pushHistorySnapshot(true);
+        });
+
+        window.onpopstate = function (event) {
+            if (event.state && event.state.appSnapshot) {
+                restoreFromSnapshot(event.state.appSnapshot);
+            }
+        };
+
+        function goToStep(n, isBack = false) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen${n}`).classList.add('active');
+            state.screen = n;
+
+            // Ocultar paneles y restaurar botones al cambiar de pantalla
+            const panelInput = document.getElementById('panel-input');
+            const panelCruce = document.getElementById('panel-cruce');
+            if (panelInput) panelInput.classList.remove('show');
+            if (panelCruce) panelCruce.classList.remove('show');
+            const ok2 = document.getElementById('ok-btn-2');
+            const ok3 = document.getElementById('ok-btn-3');
+            const ok4 = document.getElementById('ok-btn-4');
+            if (ok2) ok2.classList.remove('hidden');
+            if (ok3) ok3.classList.remove('hidden');
+            if (ok4) ok4.classList.remove('hidden');
+
+            if (!isBack) {
+                pushHistorySnapshot();
+            }
+        }
+
+        // 2. MANEJO DE ENTER EN INPUTS
+        const nameInput = document.getElementById('name-input');
+        if (nameInput) {
+            nameInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    this.blur(); // Quita el foco para cerrar el teclado
+                    processInput(); // Ejecuta lo mismo que el botón SIGUIENTE
+                }
+            });
+        }
+
+        function openInputUI() {
+            document.getElementById(`ok-btn-${state.screen}`).classList.add('hidden');
+            const panel = document.getElementById('panel-input');
+            document.getElementById(`screen${state.screen}`).appendChild(panel);
+            panel.classList.add('show');
+            updateInputText();
+        }
+
+        function updateInputText() {
+            const u = state.user === 'mami' ? 'Mami' : 'Papi';
+            const g = state.gender === 'nena' ? 'Nenas' : 'Nenes';
+            document.getElementById('step-info').innerText = `${g.toUpperCase()} - ${state.step} DE 10`;
+            document.getElementById('score-val').innerText = `${state.scores[state.step - 1]} PTS`;
+            document.getElementById('instruction').innerText = `${u}, nombre para este puntaje:`;
+            const currentItem = state.data[state.user][state.gender][state.step - 1];
+            nameInput.value = currentItem ? currentItem.name : "";
+        }
+
+        function processInput() {
+            const val = nameInput.value.trim();
+            if (!val) return;
+
+            const list = state.data[state.user][state.gender];
+            const index = state.step - 1;
+            const existing = list[index];
+
+            if (existing) {
+                existing.name = val;
+                existing.orig = state.scores[index];
+            } else {
+                list[index] = {
+                    name: val,
+                    orig: state.scores[index],
+                    voto: 0,
+                    total: 0
+                };
+            }
+
+            if (state.step < 10) {
+                pushHistorySnapshot();
+                state.step++;
+                updateInputText();
+                pushHistorySnapshot();
+            } else {
+                if (state.gender === 'nena') {
+                    pushHistorySnapshot();
+                    state.gender = 'nene';
+                    state.step = 1;
+                    updateInputText();
+                    pushHistorySnapshot();
+                } else if (state.user === 'mami') {
+                    pushHistorySnapshot();
+                    state.user = 'papi';
+                    state.gender = 'nena';
+                    state.step = 1;
+                    goToStep(3);
+                } else {
+                    pushHistorySnapshot();
+                    goToStep(4);
+                }
+            }
+        }
+
+        function openCruceUI() {
+            document.getElementById('ok-btn-4').classList.add('hidden');
+            document.getElementById('panel-cruce').classList.add('show');
+            state.user = 'papi';
+            state.gender = 'nena';
+            renderCruceList();
+            pushHistorySnapshot();
+        }
+
+        function renderCruceList() {
+            const target = state.user === 'papi' ? 'mami' : 'papi';
+            document.getElementById('target-user').innerText = target === 'mami' ? 'Mami' : 'Papi';
+            const container = document.getElementById('cruce-list-container');
+            container.innerHTML = `<h3 style="margin-bottom:15px; color:#555;">Lista de ${state.gender === 'nena' ? 'Nenas' : 'Nenes'}</h3>`;
+
+            const list = [...state.data[target][state.gender]];
+
+            list.forEach((item) => {
+                container.innerHTML += `
+                <div class="input-group">
+                    <input type="text" value="${item.name}" disabled style="background:#f9f9f9;">
+                    <select class="cruce-select" data-name="${item.name}" style="background:#fff; border:1px solid #ddd;">
+                        <option value="">Pts</option>
+                        ${state.scores.map(s => `<option value="${s}" ${item.voto === s ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            });
+
+            const selects = document.querySelectorAll('.cruce-select');
+            selects.forEach(select => {
+                select.addEventListener('change', updateCruceSelectAvailability);
+            });
+            updateCruceSelectAvailability();
+        }
+
+        function updateCruceSelectAvailability() {
+            const selects = Array.from(document.querySelectorAll('.cruce-select'));
+            const selectedScores = selects
+                .map(s => s.value)
+                .filter(v => v !== '');
+
+            selects.forEach(select => {
+                const ownValue = select.value;
+                Array.from(select.options).forEach(option => {
+                    if (option.value === '') {
+                        option.disabled = false;
+                        return;
+                    }
+
+                    // Deshabilita en este select los puntajes ya usados en otros selects.
+                    option.disabled = selectedScores.includes(option.value) && option.value !== ownValue;
+                });
+            });
+        }
+
+        function processCruce() {
+            const selects = document.querySelectorAll('.cruce-select');
+            const votes = Array.from(selects).map(s => parseInt(s.value));
+
+            if (votes.includes(NaN)) return alert("Por favor, puntuá todos los nombres.");
+            if (new Set(votes).size !== votes.length) return alert("No podés repetir puntajes en la misma lista.");
+
+            const target = state.user === 'papi' ? 'mami' : 'papi';
+            selects.forEach(s => {
+                const name = s.getAttribute('data-name');
+                const item = state.data[target][state.gender].find(x => x.name === name);
+                item.voto = parseInt(s.value);
+                item.total = item.orig + item.voto;
+            });
+
+            if (state.gender === 'nena') {
+                state.gender = 'nene';
+                renderCruceList();
+                document.getElementById('cruce-list-container').scrollTop = 0;
+                pushHistorySnapshot();
+            } else if (state.user === 'papi') {
+                state.user = 'mami';
+                state.gender = 'nena';
+                renderCruceList();
+                document.getElementById('cruce-list-container').scrollTop = 0;
+                pushHistorySnapshot();
+            } else {
+                showFinal();
+            }
+        }
+
+        function showFinal() {
+            const nenas = [...state.data.mami.nena, ...state.data.papi.nena].sort((a, b) => b.total - a.total);
+            const nenes = [...state.data.mami.nene, ...state.data.papi.nene].sort((a, b) => b.total - a.total);
+            document.getElementById('final-nena').innerText = nenas[0].name;
+            document.getElementById('final-nene').innerText = nenes[0].name;
+            goToStep(5);
+        }
+
+        // 3. TABLA FINAL DETALLADA
+        function showResultsSummary() {
+            const container = document.getElementById('app-container');
+            const allNenas = [...state.data.mami.nena, ...state.data.papi.nena].sort((a, b) => b.total - a.total);
+            const allNenes = [...state.data.mami.nene, ...state.data.papi.nene].sort((a, b) => b.total - a.total);
+
+            const buildTable = (list, title) => {
+                let html = `<h2 style="margin:20px 0 10px; color:#4a4a4a;">${title}</h2>`;
+                html += `<table style="width:100%; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+                <tr style="background:#f2f2f2;">
+                    <th style="padding:10px; text-align:left;">Nombre</th>
+                    <th style="padding:10px;">Origen</th>
+                    <th style="padding:10px;">Voto</th>
+                    <th style="padding:10px;">Total</th>
+                </tr>`;
+                list.forEach(item => {
+                    html += `<tr style="border-top:1px solid #eee;">
+                    <td style="padding:10px;"><b>${item.name}</b></td>
+                    <td style="padding:10px; text-align:center;">${item.orig}</td>
+                    <td style="padding:10px; text-align:center;">${item.voto}</td>
+                    <td style="padding:10px; text-align:center; color:#2e7d32;"><b>${item.total}</b></td>
+                </tr>`;
+                });
+                return html + `</table>`;
+            };
+
+            // Reemplazo total de la UI para la tabla final
+            container.innerHTML = `
+            <div style="padding:20px; height:100%; overflow-y:auto; background:#f9fdf9;">
+                <h1 style="text-align:center; color:#4a4a4a; margin-bottom:20px;">Resultados Finales</h1>
+                ${buildTable(allNenas, "🎀 Ranking Nenas")}
+                ${buildTable(allNenes, "⚽ Ranking Nenes")}
+                <div style="padding:40px 0;">
+                    <button onclick="location.reload()" style="width:100%; padding:20px; border-radius:50px; border:none; background:#4a4a4a; color:#fff; font-size:20px; font-weight:bold; box-shadow:0 5px 15px rgba(0,0,0,0.2);">REINICIAR</button>
+                </div>
+            </div>
+        `;
+        }
+
+        // Vinculamos el botón de la pantalla 5 a esta nueva función
+        // (Asegurate que el botón en el HTML llame a showResultsSummary())
+    </script>
+
+</body>
+
+</html>
